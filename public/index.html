@@ -2,606 +2,1798 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Forest Arena: Superhot Ultra Edition</title>
+    <title>Neon&Talk | CYBERPUNK EDITION</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; user-select: none; background: #000; }
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        
-        #crosshair { 
-            position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; 
-            border: 2px solid rgba(255,255,255,0.5); transform: translate(-50%, -50%);
+        :root { 
+            --neon: #00d9ff; --neon-glow: rgba(0, 217, 255, 0.7);
+            --pink: #ff00ff; --pink-glow: rgba(255, 0, 255, 0.7);
+            --green: #00ff88; --green-glow: rgba(0, 255, 136, 0.7);
+            --orange: #ffaa00; --orange-glow: rgba(255, 170, 0, 0.7);
+            --purple: #9d00ff; --purple-glow: rgba(157, 0, 255, 0.7);
+            --yellow: #ffcc00; --yellow-glow: rgba(255, 204, 0, 0.7);
+            --sys: var(--yellow);
+            --red: #ff4444; --red-glow: rgba(255, 68, 68, 0.7);
         }
-        #crosshair::before { content: ''; position: absolute; top: 50%; left: 50%; width: 2px; height: 2px; background: red; transform: translate(-50%, -50%); }
-
-        .hud-panel { position: absolute; padding: 20px; color: white; text-transform: uppercase; letter-spacing: 2px; }
-        #stats-left { top: 10px; left: 10px; background: linear-gradient(90deg, rgba(255,0,0,0.2), transparent); border-left: 4px solid #ff4444; }
-        #stats-right { top: 10px; right: 10px; text-align: right; background: linear-gradient(-90deg, rgba(255,255,255,0.1), transparent); border-right: 4px solid #fff; }
-        
-        .bar-bg { width: 250px; height: 18px; background: rgba(255,255,255,0.1); margin-top: 5px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.2); }
-        #hp-bar { width: 100%; height: 100%; background: #ff4444; box-shadow: 0 0 15px #ff4444; transition: width 0.3s; }
-        #stamina-bar { width: 100%; height: 100%; background: #00ff88; box-shadow: 0 0 15px #00ff88; transition: width 0.1s; }
-        
-        .bar-text { position: absolute; width: 100%; text-align: center; font-size: 11px; line-height: 18px; font-weight: 900; color: white; text-shadow: 1px 1px 2px black; z-index: 5; }
-
-        #overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, rgba(40,0,0,0.9) 0%, rgba(0,0,0,1) 100%);
-            display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto; z-index: 100;
-        }
-
-        h1 { color: #fff; font-size: 80px; margin: 0; text-shadow: 0 0 30px #ff4444; font-style: italic; }
-        .record-text { color: #ffd700; font-size: 24px; margin: 10px 0; }
-        
-        .controls-info { color:rgba(255,255,255,0.7); text-align: center; line-height: 1.6; font-size: 14px; margin-top: 15px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; }
-        .bonus-info { margin-top: 15px; font-size: 12px; display: flex; gap: 20px; font-weight: bold; }
-        
-        button {
-            padding: 20px 60px; font-size: 30px; background: transparent; color: white; border: 2px solid white; 
-            cursor: pointer; transition: all 0.3s; text-transform: uppercase; margin-top: 20px;
-        }
-        button:hover { background: white; color: black; box-shadow: 0 0 30px white; }
-
-        /* Эффект критического состояния */
-        #damage-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
-            box-shadow: inset 0 0 0px red; transition: box-shadow 0.1s; z-index: 50;
-        }
-        #critical-vignette {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
-            background: radial-gradient(circle, transparent 20%, rgba(200,0,0,0.8) 150%);
-            opacity: 0; transition: opacity 0.5s; z-index: 49;
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            overflow: hidden; background: #000; 
+            font-family: 'Segoe UI', 'Arial', 'Courier New', monospace; color: white;
+            height: 100vh;
         }
         
-        .status-msg { font-size: 18px; display: none; margin-top: 10px; font-weight: bold; animation: blink 0.5s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-        #dodge-indicator { color: #00ff88; }
-        #damage-indicator { color: #bf00ff; }
-        #reload-indicator { color: #ffae00; }
-
-        #ammo-display { font-size: 32px; margin-top: 15px; color: #ffae00; text-shadow: 0 0 10px rgba(255,174,0,0.5); font-weight: 900; }
+        #crt-overlay {
+            position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px; opacity: 0.3;
+        }
         
-        .volume-control { margin-top: 25px; color: white; display: flex; align-items: center; gap: 10px; pointer-events: auto; }
+        /* МОДАЛЬНОЕ ОКНО ПЕРЕЗАПУСКА */
+        #respawn-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            backdrop-filter: blur(10px);
+            animation: modalFadeIn 0.5s ease-out;
+        }
+        
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #0a0a1a, #000022);
+            border: 3px solid var(--red);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 0 50px var(--red-glow),
+                        inset 0 0 30px rgba(255, 68, 68, 0.1);
+            animation: modalPulse 2s infinite alternate;
+        }
+        
+        @keyframes modalPulse {
+            0% { box-shadow: 0 0 50px var(--red-glow), inset 0 0 30px rgba(255, 68, 68, 0.1); }
+            100% { box-shadow: 0 0 70px var(--red-glow), inset 0 0 40px rgba(255, 68, 68, 0.2); }
+        }
+        
+        .modal-header {
+            color: var(--red);
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px var(--red);
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .modal-message {
+            color: #fff;
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px rgba(255,255,255,0.3);
+        }
+        
+        .modal-timer {
+            color: var(--neon);
+            font-size: 48px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            margin: 30px 0;
+            text-shadow: 0 0 20px var(--neon);
+            animation: timerPulse 1s infinite;
+        }
+        
+        @keyframes timerPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .modal-subtext {
+            color: #aaa;
+            font-size: 14px;
+            margin-top: 20px;
+            font-style: italic;
+        }
+        
+        #menu { 
+            position: absolute; inset: 0; 
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(157, 0, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(0, 217, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at center, #0a0a1a 0%, #000 100%); 
+            display: flex; flex-direction: column; align-items: center; 
+            z-index: 5000; text-align: center;
+            animation: bgPulse 8s infinite alternate;
+            overflow-y: auto;
+            padding: 20px 20px 40px 20px;
+        }
+        @keyframes bgPulse {
+            0% { background-color: #050510; }
+            100% { background-color: #0a0a25; }
+        }
+        
+        .control-box { 
+            background: rgba(0, 0, 0, 0.7); border: 2px solid var(--neon); 
+            padding: 25px; border-radius: 15px; margin-bottom: 20px; 
+            width: 90%; max-width: 800px;
+            box-shadow: 0 0 30px var(--neon-glow), inset 0 0 20px rgba(0, 217, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        .control-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: left; font-size: 16px; }
+        .key-hint { color: var(--neon); font-weight: bold; white-space: nowrap; text-shadow: 0 0 10px var(--neon); }
 
-        .damage-number {
-            position: absolute; pointer-events: none; color: white; font-weight: 900; 
-            text-shadow: 2px 2px 0px black; font-size: 24px; white-space: nowrap; z-index: 10;
+        input#nickInput { 
+            background: rgba(0, 0, 0, 0.8); border: 2px solid var(--neon); color: white; 
+            padding: 15px; width: 90%; max-width: 400px; text-align: center; 
+            font-size: 18px; outline: none; border-radius: 10px; margin-bottom: 20px;
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+            transition: all 0.3s;
+        }
+        input#nickInput:focus { box-shadow: 0 0 30px var(--neon-glow); border-color: var(--pink); }
+        
+        button#startBtn { 
+            padding: 18px 60px; background: linear-gradient(45deg, var(--neon), var(--purple)); 
+            border: none; cursor: pointer; font-weight: bold; font-size: 22px; border-radius: 10px;
+            color: black; text-transform: uppercase; letter-spacing: 2px;
+            transition: all 0.3s; box-shadow: 0 0 25px rgba(0, 217, 255, 0.5);
+            position: relative; overflow: hidden;
+            margin: 10px 0 30px 0;
+            min-width: 300px;
+        }
+        button#startBtn:hover { transform: scale(1.05); box-shadow: 0 0 35px var(--neon-glow); }
+        button#startBtn::after {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg); animation: shine 3s infinite;
+        }
+        @keyframes shine { 0% { transform: translateX(-100%) rotate(45deg); } 100% { transform: translateX(100%) rotate(45deg); } }
+
+        #story-box {
+            background: rgba(0, 0, 0, 0.7); border: 2px solid var(--pink);
+            padding: 20px; border-radius: 15px; margin-bottom: 20px; 
+            width: 90%; max-width: 800px;
+            box-shadow: 0 0 30px var(--pink-glow);
+            backdrop-filter: blur(10px);
+        }
+        
+        #story-box h2 {
+            color: var(--pink); margin-bottom: 15px; text-shadow: 0 0 10px var(--pink);
+            font-family: 'Courier New', monospace; font-size: 22px;
+        }
+        
+        #story-box p {
+            color: #ccc; line-height: 1.6; margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        #tutorial-box {
+            background: rgba(0, 0, 0, 0.7); border: 2px solid var(--green);
+            padding: 20px; border-radius: 15px; margin-bottom: 20px; 
+            width: 90%; max-width: 800px;
+            box-shadow: 0 0 30px var(--green-glow);
+            backdrop-filter: blur(10px);
+        }
+        
+        #tutorial-box h2 {
+            color: var(--green); margin-bottom: 15px; text-shadow: 0 0 10px var(--green);
+            font-family: 'Courier New', monospace; font-size: 22px;
+        }
+        
+        .tutorial-item {
+            background: rgba(0, 255, 136, 0.1); border-left: 4px solid var(--green);
+            padding: 12px 15px; margin-bottom: 10px; border-radius: 0 8px 8px 0;
+            font-size: 15px;
+        }
+        
+        .tutorial-item b {
+            color: var(--green);
+        }
+        
+        #ui-wrapper { 
+            position: absolute; bottom: 25px; left: 25px; display: flex; flex-direction: column; gap: 15px; z-index: 1000; 
+            width: 420px;
+        }
+        
+        #respawn-btn {
+            background: linear-gradient(45deg, var(--red), var(--orange));
+            color: white; border: none; padding: 12px 25px; font-weight: bold; 
+            cursor: pointer; border-radius: 8px; font-size: 14px; width: max-content; 
+            white-space: nowrap; box-shadow: 0 0 15px var(--red-glow); transition: all 0.3s;
+            display: flex; align-items: center; gap: 8px;
+        }
+        #respawn-btn:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 0 25px var(--red-glow); }
+        #respawn-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        #lockBtn { 
+            background: linear-gradient(45deg, var(--neon), var(--green)); color: black; border: none; 
+            padding: 12px 25px; font-weight: bold; cursor: pointer; border-radius: 8px; font-size: 14px;
+            width: max-content; white-space: nowrap; box-shadow: 0 0 15px var(--neon-glow);
+            transition: all 0.3s;
+        }
+        #lockBtn:hover { transform: scale(1.05); box-shadow: 0 0 25px var(--neon-glow); }
+
+        #chat-container { 
+            width: 100%; height: 250px; background: rgba(0, 0, 0, 0.85); 
+            display: flex; flex-direction: column; border: 1px solid var(--neon); border-radius: 10px;
+            backdrop-filter: blur(5px); box-shadow: 0 0 20px rgba(0, 217, 255, 0.2);
+        }
+        #chat-messages { flex: 1; overflow-y: auto; padding: 15px; font-size: 14px; word-break: break-word; }
+        #chat-input { 
+            background: rgba(0, 0, 0, 0.8); border: none; color: white; padding: 15px; 
+            outline: none; border-top: 1px solid var(--neon); 
+            font-family: 'Courier New', monospace;
+        }
+
+        #tab-menu, #music-menu { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            width: 500px; max-width: 90vw; background: rgba(5, 5, 30, 0.95); border: 3px solid var(--neon); 
+            border-radius: 15px; display: none; z-index: 10000; overflow: hidden;
+            box-shadow: 0 0 60px var(--neon-glow);
+            backdrop-filter: blur(10px);
+        }
+        .tab-header { 
+            background: linear-gradient(90deg, var(--neon), var(--purple)); 
+            color: black; padding: 15px; font-weight: bold; text-align: center; font-size: 20px;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        .tab-row { 
+            display: flex; justify-content: space-between; padding: 12px 20px; 
+            border-bottom: 1px solid rgba(0, 217, 255, 0.2); font-size: 16px;
+            transition: all 0.3s;
+        }
+        .tab-row:hover { background: rgba(0, 217, 255, 0.1); color: var(--neon); }
+        
+        #music-list { max-height: 400px; overflow-y: auto; }
+        .music-item { 
+            padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); 
+            cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between; align-items: center;
+            font-size: 15px;
+        }
+        .music-item:hover { background: rgba(0, 217, 255, 0.15); color: var(--neon); }
+        .music-item.active { 
+            border-left: 5px solid var(--neon); background: rgba(0, 217, 255, 0.25); 
+            color: var(--neon); text-shadow: 0 0 10px var(--neon);
+        }
+        .music-status { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+
+        #bars-container {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; gap: 8px; width: 350px; max-width: 80vw;
+            z-index: 900;
+        }
+        .bar-bg { 
+            width: 100%; height: 12px; background: rgba(0, 0, 0, 0.6); 
+            border-radius: 6px; overflow: hidden; position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        .bar-label { 
+            position: absolute; left: 10px; top: -2px; font-size: 10px; 
+            font-weight: bold; color: rgba(255,255,255,0.7); z-index: 2;
+            font-family: 'Courier New', monospace; text-transform: uppercase;
+        }
+        
+        #stamina-bar { 
+            height: 100%; background: linear-gradient(90deg, var(--green), var(--neon)); 
+            width: 100%; transition: width 0.2s; box-shadow: 0 0 10px var(--green-glow);
+        }
+        #fuel-bar { 
+            height: 100%; background: linear-gradient(90deg, var(--orange), var(--pink)); 
+            width: 100%; transition: width 0.2s; box-shadow: 0 0 10px var(--orange-glow);
+        }
+
+        #voice-ui { 
+            position: absolute; top: 30px; right: 30px; color: var(--green); 
+            display: none; font-weight: bold; text-shadow: 0 0 10px var(--green);
+            font-family: 'Courier New', monospace; padding: 5px 10px;
+            background: rgba(0, 0, 0, 0.5); border-radius: 5px; border: 1px solid var(--green);
+        }
+        #fly-ui { 
+            position: absolute; top: 60px; right: 30px; color: var(--pink); 
+            display: none; font-weight: bold; text-shadow: 0 0 10px var(--pink);
+            font-family: 'Courier New', monospace; padding: 5px 10px;
+            background: rgba(0, 0, 0, 0.5); border-radius: 5px; border: 1px solid var(--pink);
+        }
+        .msg-line { margin-bottom: 4px; padding: 2px 0; }
+
+        #volume-container {
+            position: absolute; bottom: 25px; right: 25px;
+            background: rgba(0, 0, 0, 0.7); padding: 10px 15px; border-radius: 8px;
+            border: 1px solid var(--neon); display: none; align-items: center; gap: 10px;
+            z-index: 1001; backdrop-filter: blur(5px);
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.2);
+        }
+        #volume-container label { 
+            font-size: 12px; color: var(--neon); font-weight: bold; 
+            font-family: 'Courier New', monospace;
+        }
+        input[type=range] { 
+            cursor: pointer; accent-color: var(--neon); width: 100px;
+            filter: drop-shadow(0 0 5px var(--neon));
+        }
+
+        #now-playing-box {
+            position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8); border: 1px solid var(--neon);
+            padding: 10px 25px; border-radius: 25px; font-size: 12px;
+            color: var(--neon); z-index: 900; display: none;
+            box-shadow: 0 0 25px var(--neon-glow);
+            backdrop-filter: blur(5px); font-family: 'Courier New', monospace;
+            text-shadow: 0 0 10px var(--neon);
+        }
+        
+        #fps-counter {
+            position: absolute; top: 30px; left: 30px; color: var(--green);
+            font-family: 'Courier New', monospace; font-size: 12px;
+            background: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 5px;
+            border: 1px solid var(--green); display: none;
+        }
+        
+        .game-title {
+            color: var(--neon); 
+            font-size: clamp(42px, 8vw, 68px);
+            margin: 20px 0 10px 0; 
+            text-shadow: 0 0 30px var(--neon), 0 0 60px var(--purple);
+            font-family: 'Courier New', monospace;
+            letter-spacing: 3px;
+            animation: titleGlow 2s infinite alternate;
+        }
+        @keyframes titleGlow {
+            0% { text-shadow: 0 0 30px var(--neon), 0 0 60px var(--purple); }
+            100% { text-shadow: 0 0 40px var(--neon), 0 0 80px var(--purple); }
+        }
+        
+        .game-subtitle {
+            color: var(--pink); margin-bottom: 20px; 
+            text-shadow: 0 0 20px var(--pink); 
+            font-size: clamp(16px, 3vw, 22px);
+        }
+        
+        .start-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        #made-by {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: var(--orange);
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 10px var(--orange-glow);
+            opacity: 0.7;
+            z-index: 100;
+            pointer-events: none;
+        }
+        
+        #made-by-menu {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            color: var(--orange);
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 10px var(--orange-glow);
+            opacity: 0.8;
+            z-index: 5001;
+            pointer-events: none;
+        }
+        
+        @media (max-height: 800px) {
+            .game-title { font-size: clamp(36px, 6vw, 48px); margin: 10px 0; }
+            .game-subtitle { margin-bottom: 15px; font-size: clamp(14px, 2.5vw, 18px); }
+            .control-box { padding: 20px; margin-bottom: 15px; }
+            #story-box, #tutorial-box { padding: 15px; margin-bottom: 15px; }
+            .tutorial-item { padding: 10px 12px; font-size: 14px; }
+            .control-grid { gap: 10px; font-size: 15px; }
+            button#startBtn { padding: 15px 40px; font-size: 20px; margin: 5px 0 20px 0; }
+            #made-by { bottom: 10px; right: 10px; font-size: 10px; }
+            #made-by-menu { bottom: 8px; right: 8px; font-size: 10px; }
         }
     </style>
 </head>
 <body>
-
-    <div id="damage-overlay"></div>
-    <div id="critical-vignette"></div>
-
-    <div id="ui-layer">
-        <div id="crosshair"></div>
-        <div id="stats-left" class="hud-panel">
-            <div style="font-size: 12px;">SYSTEM INTEGRITY</div>
-            <div class="bar-bg">
-                <div class="bar-text"><span id="hp-val">100</span> / <span id="max-hp-val">100</span></div>
-                <div id="hp-bar"></div>
+    <div id="crt-overlay"></div>
+    
+    <!-- МОДАЛЬНОЕ ОКНО ПЕРЕЗАПУСКА -->
+    <div id="respawn-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>⚠️</span>
+                <span>ПЕРЕЗАПУСК СИСТЕМЫ</span>
+                <span>⚠️</span>
             </div>
             
-            <div style="margin-top:15px; font-size: 12px;">KINETIC ENERGY</div>
-            <div class="bar-bg">
-                <div class="bar-text"><span id="stamina-val">100</span> / 100</div>
-                <div id="stamina-bar"></div>
+            <div class="modal-message">
+                <p>🔹 <strong>ВНИМАНИЕ!</strong> Вы нажали кнопку респавна!</p>
+                <p>🔹 Система инициирует полный перезапуск игрового процесса.</p>
+                <p>🔹 Все соединения будут разорваны, мир пересоздан.</p>
+                <p>🔹 Страница автоматически обновится через:</p>
             </div>
             
-            <div id="ammo-display">30 / 90</div>
+            <div class="modal-timer" id="respawn-timer">10</div>
             
-            <div id="dodge-indicator" class="status-msg">PHASING ACTIVE</div>
-            <div id="damage-indicator" class="status-msg">OVERDRIVE X<span id="dmg-multiplier">1</span></div>
-            <div id="reload-indicator" class="status-msg">RELOADING...</div>
-        </div>
-        <div id="stats-right" class="hud-panel">
-            <div style="font-size: 14px; opacity: 0.7;">BEST RECORD</div>
-            <div id="best-wave" style="font-size: 32px; color: #ffd700;">0</div>
-            <div style="margin-top:10px;">WAVE: <span id="wave">1</span></div>
-            <div style="font-size: 14px;">TARGETS: <span id="enemies-count">0</span></div>
+            <div class="modal-subtext">
+                Не закрывайте эту страницу. Перезапуск необходим для корректного респавна.
+            </div>
         </div>
     </div>
+    
+    <div id="made-by">Made by YANFUN TEAM</div>
+    <audio id="bgMusic" src="" loop></audio>
 
-    <div id="overlay">
-        <h1 id="title-text">SUPERHOT</h1>
-        <div class="record-text">RECORD: <span id="record-display">0</span></div>
+    <div id="now-playing-box">🎵 СЕЙЧАС ИГРАЕТ: <span id="track-name">---</span></div>
+    <div id="voice-ui">🎤 МИКРОФОН АКТИВЕН</div>
+    <div id="fly-ui">🚀 РЕЖИМ ПОЛЕТА АКТИВЕН</div>
+    <div id="fps-counter">FPS: 0</div>
+    
+    <div id="tab-menu">
+        <div class="tab-header">АКТИВНЫЕ СОЕДИНЕНИЯ</div>
+        <div id="tab-list"></div>
+    </div>
+
+    <div id="music-menu">
+        <div class="tab-header">КИБЕРПАНК ПЛЕЙЛИСТ (P)</div>
+        <div id="music-list"></div>
+    </div>
+
+    <div id="menu">
+        <h1 class="game-title">NEON&TALK</h1>
+        <h2 class="game-subtitle">CYBERPUNK EDITION</h2>
         
-        <div class="controls-info">
-            WASD - MOVE | SPACE - JUMP | C - DASH | R - RELOAD | LMB - FIRE<br>
-            <span style="color:#ffae00; font-weight: bold;">AK-47: HOLD LMB FOR AUTOMATIC FIRE</span>
+        <div id="story-box">
+            <h2>📖 СЮЖЕТ И ЦЕЛЬ ИГРЫ</h2>
+            <p>🔹 <b>2077 год, НЕОН-СИТИ</b>: Вы - беглый хакер, скрывающийся в глубинах подземного мегаполиса.</p>
+            <p>🔹 <b>Ваша миссия</b>: Исследовать кибертуннели, найти других хакеров и установить связь с внешним миром.</p>
+            <p>🔹 <b>Респавн</b>: Нажмите кнопку "РЕСПАВН" или напишите в чат <span style="color:var(--red)">/respawn</span> чтобы вернуться на старт.</p>
+            <p>🔹 <b>Особенность</b>: Голосовой чат работает только на расстоянии до 60 метров - держитесь рядом с союзниками!</p>
         </div>
-
-        <div class="bonus-info">
-            <div style="color:#ff4444">❤ HEALTH</div>
-            <div style="color:#ffd700">✦ CORE UPGRADE</div>
-            <div style="color:#bf00ff">◎ DAMAGE STACK</div>
-            <div style="color:#ffae00">■ AMMO</div>
+        
+        <div id="tutorial-box">
+            <h2>🎮 КАК ИГРАТЬ - БЫСТРЫЙ СТАРТ</h2>
+            
+            <div class="tutorial-item">
+                <b>🔥 УПРАВЛЕНИЕ КУРСОРОМ:</b><br>
+                • В игре курсор захвачен для поворота камеры<br>
+                • <span style="color:var(--orange)">Нажмите ESC</span> - чтобы освободить курсор<br>
+                • <span style="color:var(--green)">Нажмите "ЗАХВАТИТЬ КУРСОР"</span> - чтобы вернуть управление игре
+            </div>
+            
+            <div class="tutorial-item">
+                <b>🔧 АДМИНИСТРАТОР:</b><br>
+                • Введите в чат: <span style="color:var(--pink)">/login пароль</span> - получить права админа<br>
+                • Введите: <span style="color:var(--neon)">/help</span> - список всех команд<br>
+                • Доступные команды: <span style="color:var(--green)">/tp [ник], /fly, /nofly, /kill [ник], /respawn, /pos</span>
+            </div>
+            
+            <div class="tutorial-item">
+                <b>🔊 ГОЛОСОВОЙ ЧАТ (ИСПРАВЛЕН):</b><br>
+                • Зажмите <span style="color:var(--green)">V</span> - говорить в микрофон<br>
+                • Слышно только на расстоянии до 60 метров<br>
+                • Исправлено: нет больше "дерганого" звука<br>
+                • Индикатор в правом верхнем углу
+            </div>
         </div>
-
-        <div class="volume-control">
-            <span>VOLUME:</span>
-            <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.7">
+        
+        <div class="control-box">
+            <div class="control-grid">
+                <span>Движение:</span> <span class="key-hint">W A S D</span>
+                <span>Джетпак:</span> <span class="key-hint">SPACE (ЗАЖАТЬ)</span>
+                <span>Плейлист:</span> <span class="key-hint">КЛАВИША P</span>
+                <span>Бег / Админка:</span> <span class="key-hint">SHIFT / "/login пароль"</span>
+                <span>Чат:</span> <span class="key-hint">ENTER</span>
+                <span>Голосовой чат:</span> <span class="key-hint">ЗАЖАТЬ V</span>
+                <span>Список игроков:</span> <span class="key-hint">TAB</span>
+                <span>Респавн:</span> <span class="key-hint">КНОПКА "РЕСПАВН" (3 сек. кд)</span>
+                <span>Позиция:</span> <span class="key-hint">/pos в чате</span>
+                <span>Освободить курсор:</span> <span class="key-hint">ESC</span>
+            </div>
         </div>
-
-        <button id="start-btn">START ARENA</button>
+        
+        <div class="start-container">
+            <input type="text" id="nickInput" placeholder="ВВЕДИТЕ НИКНЕЙМ (МАКС 14 СИМВ.)" maxlength="14">
+            <button id="startBtn">ПОДКЛЮЧИТЬСЯ К СЕТИ</button>
+        </div>
+        
+        <div id="made-by-menu">Made by YANFUN TEAM</div>
     </div>
 
+    <div id="bars-container">
+        <div class="bar-bg">
+            <span class="bar-label">ВЫНОСЛИВОСТЬ</span>
+            <div id="stamina-bar"></div>
+        </div>
+        <div class="bar-bg">
+            <span class="bar-label">ТОПЛИВО ДЖЕТПАКА</span>
+            <div id="fuel-bar"></div>
+        </div>
+    </div>
+
+    <div id="ui-wrapper">
+        <button id="respawn-btn">🔄 РЕСПАВН</button>
+        <button id="lockBtn">🎯 ЗАХВАТИТЬ КУРСОР</button>
+        <div id="chat-container">
+            <div id="chat-messages"></div>
+            <input type="text" id="chat-input" placeholder="Введите сообщение или /help для списка команд...">
+        </div>
+    </div>
+
+    <div id="volume-container">
+        <label>ГРОМКОСТЬ</label>
+        <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.35">
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="importmap"> { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } } </script>
     <script type="module">
-        import * as THREE from 'https://unpkg.com/three@0.126.0/build/three.module.js';
-        import { PointerLockControls } from 'https://unpkg.com/three@0.126.0/examples/jsm/controls/PointerLockControls.js';
-
-        let scene, camera, renderer, controls, gunGroup;
-        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false;
-        let isSprinting = false, isDodging = false, isFiring = false;
+        import * as THREE from 'three';
+        const socket = io();
         
-        const velocity = new THREE.Vector3();
-        const ARENA_SIZE = 150;
-        let health = 100, maxHealth = 100, stamina = 100, wave = 0, bestWave = localStorage.getItem('superhot_record') || 0;
-        let isGameActive = false;
-        let timeScale = 0.05;
+        // UI элементы
+        const chatInput = document.getElementById('chat-input');
+        const lockBtn = document.getElementById('lockBtn');
+        const respawnBtn = document.getElementById('respawn-btn');
+        const flyUI = document.getElementById('fly-ui');
+        const voiceUI = document.getElementById('voice-ui');
+        const fpsCounter = document.getElementById('fps-counter');
+        const bgMusic = document.getElementById('bgMusic');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeContainer = document.getElementById('volume-container');
+        const musicMenu = document.getElementById('music-menu');
+        const musicListUI = document.getElementById('music-list');
+        const nowPlayingBox = document.getElementById('now-playing-box');
+        const trackNameUI = document.getElementById('track-name');
+        const menu = document.getElementById('menu');
+        const madeBy = document.getElementById('made-by');
+        
+        // Элементы модального окна респавна
+        const respawnModal = document.getElementById('respawn-modal');
+        const respawnTimer = document.getElementById('respawn-timer');
+        
+        // Конфигурация мира (будет получена от сервера)
+        let WORLD_CONFIG = {
+            PLATFORM_SPACING: 12,
+            PLATFORM_WIDTH: 18,
+            PLATFORM_DEPTH: 18,
+            SPAWN_POSITION: { x: 0, y: 1.7, z: 0 }, // ФИКС: Высота игрока над платформой
+            SPAWN_PLATFORM_POSITION: { x: 0, y: 0, z: 0 }, // ФИКС: Позиция платформы спавна
+            GENERATION_DISTANCE: 150, // УВЕЛИЧЕНО С 50 ДО 150
+            MAX_PLATFORMS: 400 // УВЕЛИЧЕНО С 200 ДО 400
+        };
 
-        // TTS Флаги
-        let hasSpokenLowHP = false;
-        let hasSpokenCriticalHP = false;
+        // Игровые переменные
+        let isGaming = false, myNick = "НОВЫЙ", isAdminFly = false;
+        const otherPlayers = {};
+        const audioPlayers = {};
+        const clock = new THREE.Clock();
+        let frameCount = 0, lastTime = performance.now(), fps = 0;
+        
+        // Переменные для стамины
+        let stamina = 100;
+        let jetpackFuel = 100;
+        let isSprinting = false;
+        let sprintCooldown = false;
+        let canSprint = true;
+        
+        // Переменные для респавна
+        let respawnCooldown = false;
+        let respawnCooldownEndTime = 0;
+        let respawnCountdownInterval = null;
 
-        let ammoInMag = 30, ammoReserve = 90, isReloading = false;
-        let lastFireTime = 0;
-        const FIRE_RATE = 200; 
-        const RELOAD_TIME = 2000;
+        // Переменные для мира
+        let platforms = [];
+        let worldGenerated = false;
+        let lastGeneratedIndex = 0;
+        const PLATFORM_COUNT = 400; // УВЕЛИЧЕНО С 200 ДО 400
+        let particles;
 
-        let damageBoost = 1, damageBoostTimer = 0;
-        let enemies = [], playerBullets = [], enemyBullets = [], medkits = [], powerups = [], ammoBoxes = [], obstacles = [], coreUpgrades = [];
-        let bgm = null;
+        // ФИКС: Переменная для защиты от быстрого нажатия пробела
+        let spacePressTime = 0;
+        const SPACE_COOLDOWN = 300; // 300 мс между прыжками
 
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-        init();
-        updateUI();
-        animate();
-
-        function speakWarning(text, isCritical = false) {
-            window.speechSynthesis.cancel(); 
-            const msg = new SpeechSynthesisUtterance();
-            msg.text = text;
-            msg.lang = 'ru-RU';
-            msg.volume = 1.0;
-            msg.pitch = isCritical ? 1.5 : 1.2;
-            msg.rate = isCritical ? 1.3 : 1.0;
-            window.speechSynthesis.speak(msg);
-        }
-
-        function playSynthSound(freq, type, duration) {
-            try {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = type;
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + duration);
-            } catch(e) {}
-        }
-
-        function createDamageNumber(text, pos, color = "#ffffff") {
-            const vector = pos.clone().project(camera);
-            if (vector.z < 1) {
-                const x = (vector.x + 1) / 2 * window.innerWidth;
-                const y = -(vector.y - 1) / 2 * window.innerHeight;
-                const div = document.createElement('div');
-                div.className = 'damage-number';
-                div.style.left = x + 'px';
-                div.style.top = y + 'px';
-                div.style.color = color;
-                div.innerText = text;
-                document.body.appendChild(div);
-                let opacity = 1;
-                let currentY = y;
-                const anim = setInterval(() => {
-                    currentY -= 1.5;
-                    opacity -= 0.02;
-                    div.style.top = currentY + 'px';
-                    div.style.opacity = opacity;
-                    if(opacity <= 0) { clearInterval(anim); div.remove(); }
-                }, 16);
+        // --- СИСТЕМА ПЕРЕЗАПУСКА ПРИ РЕСПАВНЕ ---
+        function showRespawnModal() {
+            // Останавливаем музыку
+            if (bgMusic) {
+                bgMusic.pause();
+                bgMusic.currentTime = 0;
             }
+            
+            // Останавливаем голосовой чат
+            if (audioCtx) {
+                audioCtx.close();
+            }
+            
+            // Отключаем сокет
+            socket.disconnect();
+            
+            // Показываем модальное окно
+            respawnModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            
+            // Запускаем таймер обратного отсчета
+            let seconds = 10;
+            respawnTimer.textContent = seconds;
+            
+            respawnCountdownInterval = setInterval(() => {
+                seconds--;
+                respawnTimer.textContent = seconds;
+                
+                // Меняем цвет таймера в зависимости от времени
+                if (seconds <= 3) {
+                    respawnTimer.style.color = 'var(--red)';
+                    respawnTimer.style.textShadow = '0 0 20px var(--red)';
+                } else if (seconds <= 7) {
+                    respawnTimer.style.color = 'var(--orange)';
+                    respawnTimer.style.textShadow = '0 0 20px var(--orange)';
+                }
+                
+                if (seconds <= 0) {
+                    clearInterval(respawnCountdownInterval);
+                    // Перезагружаем страницу
+                    window.location.reload();
+                }
+            }, 1000);
         }
 
-        function init() {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x050505);
-            scene.fog = new THREE.FogExp2(0x050505, 0.015);
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        // --- ЗВЕЗДНОЕ НЕБО ---
+        function createStars(count = 15000) {
+            const starGeometry = new THREE.BufferGeometry();
+            const starMaterial = new THREE.PointsMaterial({
+                color: 0xFFFFFF,
+                size: 0.07,
+                transparent: true,
+                opacity: 0.9
+            });
             
-            const ambient = new THREE.AmbientLight(0xffffff, 0.3);
-            scene.add(ambient);
-            const mainLight = new THREE.PointLight(0xffffff, 1.2, 100);
-            mainLight.position.set(0, 20, 0);
-            scene.add(mainLight);
+            const starVertices = [];
+            for (let i = 0; i < count; i++) {
+                const x = (Math.random() - 0.5) * 8000;
+                const y = (Math.random() - 0.5) * 8000;
+                const z = (Math.random() - 0.5) * 8000;
+                starVertices.push(x, y, z);
+            }
+            
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+            return new THREE.Points(starGeometry, starMaterial);
+        }
 
-            const groundGeo = new THREE.PlaneGeometry(ARENA_SIZE, ARENA_SIZE);
-            const groundMat = new THREE.MeshPhongMaterial({ color: 0x111111, specular: 0x444444 });
-            const ground = new THREE.Mesh(groundGeo, groundMat);
-            ground.rotation.x = -Math.PI / 2;
-            scene.add(ground);
-
-            const grid = new THREE.GridHelper(ARENA_SIZE, 40, 0xff0000, 0x222222);
-            grid.position.y = 0.05;
-            scene.add(grid);
-
-            gunGroup = new THREE.Group();
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.3, 0.7), new THREE.MeshStandardMaterial({ color: 0x222222 }));
-            const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.8), new THREE.MeshStandardMaterial({ color: 0x111111 }));
-            barrel.position.z = -0.6;
-            const magazine = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.4, 0.25), new THREE.MeshStandardMaterial({ color: 0x333333 }));
-            magazine.position.set(0, -0.25, -0.1);
-            magazine.rotation.x = 0.3;
-            gunGroup.add(body, barrel, magazine);
-            camera.add(gunGroup);
-            gunGroup.position.set(0.4, -0.4, -0.6);
-
-            const borders = [
-                { pos: [0, 10, -ARENA_SIZE/2], size: [ARENA_SIZE, 20, 2] },
-                { pos: [0, 10, ARENA_SIZE/2], size: [ARENA_SIZE, 20, 2] },
-                { pos: [-ARENA_SIZE/2, 10, 0], size: [2, 20, ARENA_SIZE] },
-                { pos: [ARENA_SIZE/2, 10, 0], size: [2, 20, ARENA_SIZE] }
+        // --- НЕОНОВЫЕ ТУННЕЛИ И ПЛАТФОРМЫ ---
+        function createCyberPlatform(x, y, z, type = 'normal') {
+            const group = new THREE.Group();
+            
+            // Платформа
+            const colors = [0x00d9ff, 0xff00ff, 0x00ff88, 0xffaa00, 0x9d00ff];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            const platformGeo = new THREE.BoxGeometry(WORLD_CONFIG.PLATFORM_WIDTH, 0.5, WORLD_CONFIG.PLATFORM_DEPTH);
+            const platformMat = new THREE.MeshStandardMaterial({
+                color: 0x111111,
+                emissive: color,
+                emissiveIntensity: 0.3,
+                metalness: 0.9,
+                roughness: 0.1
+            });
+            const platform = new THREE.Mesh(platformGeo, platformMat);
+            platform.position.set(0, 0, 0);
+            group.add(platform);
+            
+            // Неоновые полосы по краям
+            const edgeGeo = new THREE.BoxGeometry(WORLD_CONFIG.PLATFORM_WIDTH + 2, 0.2, 0.5);
+            const edgeMat = new THREE.MeshStandardMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 1.0,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            const edges = [];
+            const edgePositions = [
+                [0, 0.3, WORLD_CONFIG.PLATFORM_DEPTH/2], 
+                [0, 0.3, -WORLD_CONFIG.PLATFORM_DEPTH/2], 
+                [WORLD_CONFIG.PLATFORM_WIDTH/2, 0.3, 0], 
+                [-WORLD_CONFIG.PLATFORM_WIDTH/2, 0.3, 0]
             ];
-            borders.forEach(b => {
-                const wall = new THREE.Mesh(new THREE.BoxGeometry(...b.size), new THREE.MeshPhongMaterial({ color: 0x151515 }));
-                wall.position.set(...b.pos);
-                scene.add(wall);
-                obstacles.push(wall);
-            });
-
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
-
-            controls = new PointerLockControls(camera, document.body);
-            scene.add(controls.getObject());
-            controls.getObject().position.y = 2;
-
-            document.getElementById('start-btn').addEventListener('click', () => {
-                if (health <= 0) location.reload();
-                controls.lock();
-            });
-
-            document.getElementById('volume-slider').addEventListener('input', (e) => {
-                if(bgm) bgm.volume = e.target.value;
-            });
-
-            controls.addEventListener('lock', () => {
-                document.getElementById('overlay').style.display = 'none';
-                isGameActive = true;
-                if(!bgm) startMusic();
-            });
-
-            controls.addEventListener('unlock', () => {
-                isGameActive = false;
-                if(health > 0) document.getElementById('overlay').style.display = 'flex';
-            });
-
-            window.addEventListener('keydown', (e) => {
-                onKey(e.code, true);
-                if(e.code === 'KeyR' && !isReloading && ammoInMag < 30 && ammoReserve > 0) reload();
-            });
-            window.addEventListener('keyup', (e) => onKey(e.code, false));
-            window.addEventListener('mousedown', () => { isFiring = true; });
-            window.addEventListener('mouseup', () => { isFiring = false; });
             
-            spawnDecor();
+            edgePositions.forEach(pos => {
+                const edge = new THREE.Mesh(edgeGeo, edgeMat);
+                edge.position.set(pos[0], pos[1], pos[2]);
+                group.add(edge);
+                edges.push(edge);
+            });
+            
+            // Вращающиеся голограммы
+            if (Math.random() > 0.7) {
+                const hologramGeo = new THREE.CylinderGeometry(3, 3, 6, 8);
+                const hologramMat = new THREE.MeshBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: 0.3,
+                    wireframe: true
+                });
+                const hologram = new THREE.Mesh(hologramGeo, hologramMat);
+                hologram.position.set(0, 4, 0);
+                group.add(hologram);
+                hologram.userData.rotate = true;
+            }
+            
+            // Случайные неоновые столбы
+            for (let i = 0; i < 4; i++) {
+                if (Math.random() > 0.5) {
+                    const pillarGeo = new THREE.CylinderGeometry(0.3, 0.3, 3, 8);
+                    const pillarMat = new THREE.MeshStandardMaterial({
+                        color: color,
+                        emissive: color,
+                        emissiveIntensity: 0.8
+                    });
+                    const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+                    pillar.position.set(
+                        (Math.random() - 0.5) * 14,
+                        1.5,
+                        (Math.random() - 0.5) * 14
+                    );
+                    group.add(pillar);
+                }
+            }
+            
+            group.position.set(x, y, z);
+            group.userData = { 
+                hw: WORLD_CONFIG.PLATFORM_WIDTH/2, 
+                hh: 0.25, 
+                hd: WORLD_CONFIG.PLATFORM_DEPTH/2,
+                color: color,
+                edges: edges,
+                hologram: group.children.find(c => c.userData.rotate),
+                type: type
+            };
+            
+            return group;
         }
 
-        function startMusic() {
-            bgm = new Audio('music.mp3'); 
-            bgm.loop = true;
-            bgm.volume = document.getElementById('volume-slider').value;
-            bgm.play().catch(() => console.warn("Music file missing"));
+        // Детерминированная функция для получения позиции платформы
+        function getPlatformPosition(index, isSpawn = false) {
+            if (isSpawn) {
+                return WORLD_CONFIG.SPAWN_PLATFORM_POSITION; // ФИКС: Спавн платформа всегда на (0,0,0)
+            }
+            
+            const y = -index * WORLD_CONFIG.PLATFORM_SPACING;
+            const z = -index * 25;
+            
+            // Детерминированный RNG на основе индекса
+            const seed = index * 9301 + 49297;
+            const rand = (seed % 233280) / 233280;
+            
+            const x = (rand - 0.5) * 100;
+            
+            return { x, y, z };
         }
 
-        function spawnDecor() {
-            const geo = new THREE.BoxGeometry(4, 12, 4);
-            const mat = new THREE.MeshPhongMaterial({color: 0x151515});
-            for(let i=0; i<15; i++) {
-                const obs = new THREE.Mesh(geo, mat);
-                obs.position.set(Math.random()*100-50, 6, Math.random()*100-50);
-                scene.add(obs);
-                obstacles.push(obs);
+        // --- ЛОГИКА МУЗЫКИ ---
+        let playlist = [];
+        let currentTrackIndex = 0;
+
+        async function loadPlaylist() {
+            try {
+                const response = await fetch('/get-music');
+                playlist = await response.json();
+                renderPlaylist();
+                if (playlist.length > 0) {
+                    playTrack(0);
+                }
+            } catch (e) {
+                console.error("Ошибка загрузки плейлиста:", e);
             }
         }
 
-        function reload() {
-            isReloading = true;
-            document.getElementById('reload-indicator').style.display = 'block';
-            playSynthSound(200, 'square', 0.5);
+        function renderPlaylist() {
+            musicListUI.innerHTML = "";
+            playlist.forEach((track, index) => {
+                const item = document.createElement('div');
+                item.className = 'music-item' + (index === currentTrackIndex ? ' active' : '');
+                item.innerHTML = `
+                    <span>${track.replace('.mp3', '')}</span>
+                    <span class="music-status">${index === currentTrackIndex ? '▶ ИГРАЕТ' : '⏸ ГОТОВ'}</span>
+                `;
+                item.onclick = () => playTrack(index);
+                musicListUI.appendChild(item);
+            });
+        }
+
+        function playTrack(index) {
+            if (!playlist[index]) return;
+            currentTrackIndex = index;
+            bgMusic.src = playlist[index];
+            bgMusic.play().catch(e => console.log("Автовоспроизведение заблокировано"));
+            
+            trackNameUI.textContent = playlist[index].replace('.mp3', '');
+            nowPlayingBox.style.display = 'block';
+            renderPlaylist();
+        }
+
+        bgMusic.onended = () => {
+            let next = (currentTrackIndex + 1) % playlist.length;
+            playTrack(next);
+        };
+
+        bgMusic.volume = 0.35;
+        volumeSlider.addEventListener('input', (e) => {
+            bgMusic.volume = e.target.value;
+        });
+
+        // --- РЕСПАВН КНОПКА ---
+        function requestRespawn() {
+            if (!isGaming) return;
+            
+            const now = Date.now();
+            const timeLeft = Math.ceil((respawnCooldownEndTime - now) / 1000);
+            
+            if (respawnCooldown && timeLeft > 0) {
+                // Показываем сообщение о кулдауне
+                const chatMessage = {
+                    nick: 'СИСТЕМА',
+                    msg: `Респавн на кулдауне: ${timeLeft} сек.`,
+                    type: 'sys'
+                };
+                socket.emit('receiveMessage', chatMessage);
+                return;
+            }
+            
+            console.log("Запуск процедуры респавна...");
+            
+            // Отправляем запрос на респавн серверу
+            socket.emit('requestRespawn');
+            
+            // Включаем локальный кулдаун
+            respawnCooldown = true;
+            respawnCooldownEndTime = now + 3000;
+            respawnBtn.disabled = true;
+            respawnBtn.textContent = '🔄 КУЛДАУН (3с)';
+            
+            // Показываем модальное окно перезапуска через 1 секунду (для визуального эффекта)
             setTimeout(() => {
-                const toLoad = Math.min(30 - ammoInMag, ammoReserve);
-                ammoInMag += toLoad; ammoReserve -= toLoad;
-                isReloading = false;
-                document.getElementById('reload-indicator').style.display = 'none';
-                updateUI();
-            }, RELOAD_TIME);
+                showRespawnModal();
+            }, 1000);
         }
 
-        function onKey(code, isDown) {
-            if(code === 'KeyW') moveForward = isDown;
-            if(code === 'KeyS') moveBackward = isDown;
-            if(code === 'KeyA') moveLeft = isDown;
-            if(code === 'KeyD') moveRight = isDown;
-            if(code === 'ShiftLeft') isSprinting = isDown;
-            if(code === 'Space' && isDown && canJump) { velocity.y += 20; canJump = false; }
-            if(code === 'KeyC' && isDown && !isDodging && stamina >= 30) {
-                isDodging = true; stamina -= 30;
-                document.getElementById('dodge-indicator').style.display = 'block';
-                setTimeout(() => { isDodging = false; document.getElementById('dodge-indicator').style.display = 'none'; }, 3000);
+        respawnBtn.addEventListener('click', () => {
+            requestRespawn();
+        });
+
+        // Событие от сервера о конце кулдауна
+        socket.on('respawnCooldownEnd', () => {
+            console.log("Кулдаун респавна закончился");
+            respawnCooldown = false;
+            respawnBtn.disabled = false;
+            respawnBtn.textContent = '🔄 РЕСПАВН';
+        });
+
+        // Обновление кулдауна в реальном времени
+        function updateRespawnCooldown() {
+            if (respawnCooldown && respawnCooldownEndTime) {
+                const now = Date.now();
+                const timeLeft = Math.ceil((respawnCooldownEndTime - now) / 1000);
+                
+                if (timeLeft > 0) {
+                    respawnBtn.textContent = `🔄 КУЛДАУН (${timeLeft}с)`;
+                } else {
+                    respawnCooldown = false;
+                    respawnBtn.disabled = false;
+                    respawnBtn.textContent = '🔄 РЕСПАВН';
+                }
             }
         }
 
-        function shoot() {
-            const now = performance.now();
-            if(!isGameActive || health <= 0 || isReloading || ammoInMag <= 0 || now - lastFireTime < FIRE_RATE) return;
-            lastFireTime = now; ammoInMag--;
-            const bColor = damageBoost > 1 ? 0xbf00ff : 0x00ffff;
-            const b = new THREE.Mesh(new THREE.SphereGeometry(0.12), new THREE.MeshBasicMaterial({color: bColor}));
-            const bulletPos = new THREE.Vector3(); gunGroup.getWorldPosition(bulletPos);
-            b.position.copy(bulletPos);
-            const dir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
-            b.userData = { vel: dir.multiplyScalar(2.5), life: 100, damage: 25 * damageBoost, bounces: 1 };
-            playerBullets.push(b); scene.add(b);
-            gunGroup.position.z += 0.15;
-            playSynthSound(500, 'square', 0.05);
-            updateUI();
+        // --- УПРАВЛЕНИЕ КУРСОРОМ ---
+        function requestLock() {
+            if (isGaming && document.activeElement !== chatInput) {
+                document.body.requestPointerLock();
+            }
+        }
+        lockBtn.addEventListener('click', (e) => { e.stopPropagation(); requestLock(); });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Escape') {
+                document.exitPointerLock();
+            }
+        });
+
+        // --- ИСПРАВЛЕНИЕ ПАДЕНИЯ ПРИ АКТИВНОМ ЧАТЕ ---
+        let wasInChat = false;
+        let chatEnterVelocity = 0;
+
+        // --- ИСПРАВЛЕННЫЙ ГОЛОСОВОЙ ЧАТ ---
+        let audioCtx;
+        let mediaStream = null;
+        let mediaSource = null;
+        let audioProcessor = null;
+        let audioInterval = null;
+        
+        const SAMPLE_RATE = 22050; 
+        
+        async function initVoice() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext({ sampleRate: SAMPLE_RATE });
+
+                mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        sampleRate: SAMPLE_RATE,
+                        channelCount: 1,
+                        latency: 0.01
+                    }
+                });
+                
+                mediaSource = audioCtx.createMediaStreamSource(mediaStream);
+                audioProcessor = audioCtx.createScriptProcessor(1024, 1, 1);
+                
+                mediaSource.connect(audioProcessor);
+                audioProcessor.connect(audioCtx.destination);
+                
+                audioProcessor.onaudioprocess = (e) => {
+                    if (keys.v && document.activeElement !== chatInput && isGaming) {
+                        const input = e.inputBuffer.getChannelData(0);
+                        const output = new Int8Array(input.length);
+                        for (let i = 0; i < input.length; i++) {
+                            output[i] = Math.max(-1, Math.min(1, input[i])) * 0x7F;
+                        }
+                        socket.volatile.emit('audioStream', output.buffer);
+                    }
+                };
+                
+                if (audioInterval) clearInterval(audioInterval);
+                audioInterval = setInterval(() => {
+                    if (keys.v && isGaming) {
+                        socket.volatile.emit('audioHeartbeat');
+                    }
+                }, 50);
+                
+            } catch(e) { 
+                console.log("Микрофон недоступен:", e); 
+            }
         }
 
-        function checkWallCollision(newPos, oldPos) {
-            const playerRadius = 1.2;
-            for(let obs of obstacles) {
-                const box = new THREE.Box3().setFromObject(obs);
-                const expandedBox = box.clone().expandByScalar(playerRadius);
-                if(expandedBox.containsPoint(newPos)) {
+        function initAudioPlayer(playerId) {
+            if (audioPlayers[playerId]) {
+                return audioPlayers[playerId];
+            }
+            
+            const audioPlayer = {
+                nextTime: 0,
+                gainNode: null,
+                lastUpdate: Date.now(),
+                audioQueue: [],
+                isPlaying: false
+            };
+            
+            audioPlayers[playerId] = audioPlayer;
+            return audioPlayer;
+        }
+
+        socket.on('audioStream', (data) => {
+            if (!isGaming || !otherPlayers[data.id] || !audioCtx) return;
+            
+            const dist = cameraHolder.position.distanceTo(new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z));
+            if (dist > 60) return;
+            
+            const vol = Math.max(0.01, 1 - (dist / 60));
+            
+            if (!audioPlayers[data.id]) {
+                initAudioPlayer(data.id);
+            }
+            
+            const player = audioPlayers[data.id];
+            player.lastUpdate = Date.now();
+            
+            try {
+                const intData = new Int8Array(data.buffer);
+                const floatData = new Float32Array(intData.length);
+                for (let i = 0; i < intData.length; i++) {
+                    floatData[i] = intData[i] / 0x7F;
+                }
+                
+                const buffer = audioCtx.createBuffer(1, floatData.length, SAMPLE_RATE);
+                buffer.copyToChannel(floatData, 0);
+                
+                player.audioQueue.push({buffer: buffer, volume: vol});
+                
+                if (!player.isPlaying) {
+                    processAudioQueue(player);
+                }
+                
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                
+            } catch(e) {
+                console.error("Ошибка аудио:", e);
+            }
+        });
+
+        function processAudioQueue(player) {
+            if (player.audioQueue.length === 0) {
+                player.isPlaying = false;
+                return;
+            }
+            
+            player.isPlaying = true;
+            const audioData = player.audioQueue.shift();
+            
+            const source = audioCtx.createBufferSource();
+            source.buffer = audioData.buffer;
+            
+            if (!player.gainNode) {
+                player.gainNode = audioCtx.createGain();
+                player.gainNode.connect(audioCtx.destination);
+            }
+            source.connect(player.gainNode);
+            player.gainNode.gain.value = audioData.volume;
+
+            source.start(0);
+            
+            source.onended = () => {
+                setTimeout(() => processAudioQueue(player), 0);
+            };
+        }
+
+        setInterval(() => {
+            const now = Date.now();
+            for (const playerId in audioPlayers) {
+                if (now - audioPlayers[playerId].lastUpdate > 3000) {
+                    if (audioPlayers[playerId].gainNode) {
+                        audioPlayers[playerId].gainNode.disconnect();
+                    }
+                    delete audioPlayers[playerId];
+                }
+            }
+        }, 2000);
+
+        // --- СОБЫТИЯ СЕТИ ---
+        socket.on('worldConfig', (config) => {
+            WORLD_CONFIG = config;
+            console.log("Получена конфигурация мира:", WORLD_CONFIG);
+            console.log("Спавн позиция:", WORLD_CONFIG.SPAWN_POSITION);
+            console.log("Платформа спавна:", WORLD_CONFIG.SPAWN_PLATFORM_POSITION);
+        });
+
+        socket.on('teleport', (p) => { 
+            console.log("Телепортация на:", p);
+            
+            // ФИКС: Устанавливаем позицию точно как сказал сервер
+            cameraHolder.position.set(p.x, p.y, p.z); 
+            velY = 0; 
+            jetpackFuel = 100;
+            
+            // ФИКС: Немедленно синхронизируем позицию с сервером
+            socket.emit('move', {
+                x: p.x, 
+                y: p.y, 
+                z: p.z, 
+                nick: myNick
+            });
+            
+            // ФИКС: Сообщаем игроку
+            const div = document.createElement('div');
+            div.className = 'msg-line';
+            const b = document.createElement('b');
+            b.textContent = 'СИСТЕМА: ';
+            b.style.color = 'var(--sys)';
+            const span = document.createElement('span');
+            span.textContent = `Телепортация на X=${p.x.toFixed(1)}, Y=${p.y.toFixed(1)}, Z=${p.z.toFixed(1)}`;
+            div.appendChild(b);
+            div.appendChild(span);
+            const m = document.getElementById('chat-messages');
+            m.appendChild(div); 
+            m.scrollTop = m.scrollHeight;
+        });
+        
+        socket.on('setFly', s => { 
+            isAdminFly = s; 
+            velY = 0; 
+            flyUI.style.display = s ? 'block' : 'none'; 
+        });
+        
+        socket.on('forceKill', () => { 
+            cameraHolder.position.set(
+                WORLD_CONFIG.SPAWN_POSITION.x, 
+                WORLD_CONFIG.SPAWN_POSITION.y, 
+                WORLD_CONFIG.SPAWN_POSITION.z
+            ); 
+            velY = 0; 
+            jetpackFuel = 100;
+            socket.emit('move', {
+                x: WORLD_CONFIG.SPAWN_POSITION.x, 
+                y: WORLD_CONFIG.SPAWN_POSITION.y, 
+                z: WORLD_CONFIG.SPAWN_POSITION.z, 
+                nick: myNick
+            });
+        });
+
+        // --- ГРАФИКА ---
+        const scene = new THREE.Scene(); 
+        scene.fog = new THREE.FogExp2(0x000011, 0.008);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
+        const cameraHolder = new THREE.Group(); 
+        cameraHolder.add(camera); 
+        scene.add(cameraHolder);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "low-power" });
+        renderer.setSize(window.innerWidth, window.innerHeight); 
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        // Неоновое освещение
+        const ambientLight = new THREE.AmbientLight(0x222222);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0x00aaff, 0.5);
+        directionalLight.position.set(10, 20, 5);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.camera.left = -50;
+        directionalLight.shadow.camera.right = 50;
+        directionalLight.shadow.camera.top = 50;
+        directionalLight.shadow.camera.bottom = -50;
+        scene.add(directionalLight);
+        
+        const pointLight = new THREE.PointLight(0xff00ff, 0.5, 100);
+        pointLight.position.set(0, 10, 0);
+        scene.add(pointLight);
+
+        // Звезды
+        let stars;
+        
+        function initStars() {
+            if (stars) scene.remove(stars);
+            stars = createStars(15000);
+            scene.add(stars);
+        }
+        
+        initStars();
+
+        // Создание игрока
+        function createPlayer(id, nick) {
+            const group = new THREE.Group();
+            
+            const bodyGeo = new THREE.CylinderGeometry(0.4, 0.6, 2, 8);
+            const bodyMat = new THREE.MeshStandardMaterial({
+                color: 0x00ff88,
+                emissive: 0x00ff88,
+                emissiveIntensity: 0.3,
+                metalness: 0.8,
+                roughness: 0.2
+            });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 1;
+            group.add(body);
+            
+            const headGeo = new THREE.SphereGeometry(0.3, 8, 8);
+            const headMat = new THREE.MeshStandardMaterial({
+                color: 0x00ff88,
+                emissive: 0x00ff88,
+                emissiveIntensity: 0.2
+            });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 2.2;
+            group.add(head);
+            
+            const jetpackGeo = new THREE.BoxGeometry(0.6, 1.2, 0.4);
+            const jetpackMat = new THREE.MeshStandardMaterial({
+                color: 0x333333,
+                metalness: 0.9,
+                roughness: 0.1
+            });
+            const jetpack = new THREE.Mesh(jetpackGeo, jetpackMat);
+            jetpack.position.set(0, 0.6, 0.3);
+            group.add(jetpack);
+            
+            const neonGeo = new THREE.BoxGeometry(0.2, 0.4, 0.1);
+            const neonMat = new THREE.MeshBasicMaterial({
+                color: 0x00d9ff,
+                transparent: true,
+                opacity: 0.8
+            });
+            const neonLeft = new THREE.Mesh(neonGeo, neonMat);
+            neonLeft.position.set(0.2, 0.4, 0.35);
+            group.add(neonLeft);
+            
+            const neonRight = new THREE.Mesh(neonGeo, neonMat);
+            neonRight.position.set(-0.2, 0.4, 0.35);
+            group.add(neonRight);
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#00d9ff';
+            ctx.font = 'bold 36px "Courier New", monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(nick, 256, 60);
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            ctx.strokeText(nick, 256, 60);
+            
+            const spriteMat = new THREE.SpriteMaterial({ 
+                map: new THREE.CanvasTexture(canvas),
+                transparent: true
+            });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.position.y = 2.8;
+            sprite.scale.set(5, 1.25, 1);
+            group.add(sprite);
+            
+            scene.add(group);
+            return { 
+                mesh: group, 
+                targetPos: new THREE.Vector3(),
+                nickSprite: sprite
+            };
+        }
+
+        // Сетевое обновление игроков
+        socket.on('currentPlayers', ps => {
+            const list = document.getElementById('tab-list'); 
+            list.innerHTML = ""; 
+            Object.keys(ps).forEach(id => {
+                const row = document.createElement('div'); 
+                row.className = 'tab-row';
+                row.id = `row-${id}`;
+                row.textContent = ps[id].nick;
+                const status = document.createElement('span');
+                status.style.color = 'var(--green)';
+                status.textContent = ' ● ОНЛАЙН';
+                row.appendChild(status);
+                list.appendChild(row);
+
+                if (id !== socket.id && !otherPlayers[id]) {
+                    otherPlayers[id] = createPlayer(id, ps[id].nick);
+                    initAudioPlayer(id);
+                }
+            });
+        });
+
+        socket.on('playerMoved', d => { 
+            if(otherPlayers[d.id]) {
+                otherPlayers[d.id].targetPos.set(d.x, d.y, d.z);
+            }
+        });
+        
+        socket.on('playerLeft', id => { 
+            if(otherPlayers[id]) { 
+                scene.remove(otherPlayers[id].mesh); 
+                delete otherPlayers[id]; 
+            }
+            if (audioPlayers[id]) {
+                if (audioPlayers[id].gainNode) {
+                    audioPlayers[id].gainNode.disconnect();
+                }
+                delete audioPlayers[id];
+            }
+            const row = document.getElementById(`row-${id}`); 
+            if (row) row.remove();
+        });
+
+        // --- ДИНАМИЧЕСКАЯ ГЕНЕРАЦИЯ МИРА ---
+        function generateInitialWorld() {
+            // Очищаем старые платформы
+            platforms.forEach(p => {
+                scene.remove(p);
+            });
+            platforms = [];
+            
+            // ФИКС: Создаем спавн платформу точно на (0, 0, 0)
+            const spawnPos = WORLD_CONFIG.SPAWN_PLATFORM_POSITION;
+            console.log("Создаем спавн платформу на:", spawnPos);
+            
+            const startPlatform = createCyberPlatform(spawnPos.x, spawnPos.y, spawnPos.z, 'start');
+            scene.add(startPlatform);
+            platforms.push(startPlatform);
+            
+            // Генерируем начальный набор платформ
+            generateWorldAroundPlayer();
+            
+            // Создаем частицы
+            createParticles();
+            
+            worldGenerated = true;
+            lastGeneratedIndex = 0;
+            
+            console.log("Мир сгенерирован. Спавн платформа создана.");
+        }
+
+        function generateWorldAroundPlayer() {
+            const playerY = cameraHolder.position.y;
+            const targetIndex = Math.floor(Math.abs(playerY - WORLD_CONFIG.GENERATION_DISTANCE) / WORLD_CONFIG.PLATFORM_SPACING);
+            
+            // Если мы уже сгенерировали достаточно, не генерируем снова
+            if (targetIndex <= lastGeneratedIndex) {
+                return;
+            }
+            
+            // Определяем, сколько платформ нужно сгенерировать
+            const platformsToGenerate = Math.min(targetIndex - lastGeneratedIndex, 40); // УВЕЛИЧЕНО С 20 ДО 40
+            
+            for (let i = 0; i < platformsToGenerate && (lastGeneratedIndex + i) < PLATFORM_COUNT; i++) {
+                const index = lastGeneratedIndex + i;
+                const pos = getPlatformPosition(index);
+                
+                const platform = createCyberPlatform(pos.x, pos.y, pos.z);
+                scene.add(platform);
+                platforms.push(platform);
+                
+                // Случайные мостики
+                if (Math.random() > 0.7 && index > 1) {
+                    const bridgePos = {
+                        x: pos.x,
+                        y: pos.y + 6,
+                        z: pos.z - 12.5
+                    };
+                    const bridge = createCyberPlatform(bridgePos.x, bridgePos.y, bridgePos.z, 'bridge');
+                    scene.add(bridge);
+                    platforms.push(bridge);
+                }
+            }
+            
+            lastGeneratedIndex += platformsToGenerate;
+            
+            // Очищаем слишком далекие платформы (оптимизация)
+            cleanupDistantPlatforms(playerY);
+        }
+
+        function cleanupDistantPlatforms(playerY) {
+            const MAX_DISTANCE = 300; // УВЕЛИЧЕНО С 200 ДО 300
+            
+            for (let i = platforms.length - 1; i >= 0; i--) {
+                const platform = platforms[i];
+                const distance = Math.abs(platform.position.y - playerY);
+                
+                if (distance > MAX_DISTANCE) {
+                    scene.remove(platform);
+                    platforms.splice(i, 1);
+                }
+            }
+        }
+
+        function createParticles() {
+            if (particles) {
+                scene.remove(particles);
+            }
+            
+            const particleCount = 1000;
+            const particleGeometry = new THREE.BufferGeometry();
+            const particlePositions = new Float32Array(particleCount * 3);
+            const particleColors = new Float32Array(particleCount * 3);
+            
+            for (let i = 0; i < particleCount; i++) {
+                particlePositions[i * 3] = (Math.random() - 0.5) * 800; // УВЕЛИЧЕНО С 500 ДО 800
+                particlePositions[i * 3 + 1] = (Math.random() - 0.5) * 800 - 200; // УВЕЛИЧЕНО С 500 ДО 800
+                particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 800 - 400; // УВЕЛИЧЕНО С 500 ДО 800
+                
+                const color = new THREE.Color(
+                    Math.random() > 0.5 ? 0x00d9ff : 0xff00ff
+                );
+                particleColors[i * 3] = color.r;
+                particleColors[i * 3 + 1] = color.g;
+                particleColors[i * 3 + 2] = color.b;
+            }
+            
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+            particleGeometry.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+            
+            const particleMaterial = new THREE.PointsMaterial({
+                size: 0.5,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.6
+            });
+            
+            particles = new THREE.Points(particleGeometry, particleMaterial);
+            scene.add(particles);
+        }
+
+        // Коллизии
+        function checkCollision(pos) {
+            const r = 0.5, h = 1.8;
+            for (let p of platforms) {
+                if (pos.x > p.position.x - p.userData.hw - r && 
+                    pos.x < p.position.x + p.userData.hw + r &&
+                    pos.y > p.position.y - p.userData.hh - h && 
+                    pos.y < p.position.y + p.userData.hh + 0.5 &&
+                    pos.z > p.position.z - p.userData.hd - r && 
+                    pos.z < p.position.z + p.userData.hd + r) {
                     return true;
                 }
             }
             return false;
         }
 
+        // --- INPUT ---
+        let keys = {w:0,s:0,a:0,d:0,shift:0,v:0,space:0,ctrl:0};
+        let velY = 0, jumpCount = 0, pitch = 0, yaw = 0;
+
+        window.addEventListener('keydown', e => {
+            if(document.activeElement === chatInput) {
+                if(e.code === 'Enter') {
+                    if(chatInput.value.trim()) socket.emit('chatMessage', chatInput.value);
+                    chatInput.value = ""; 
+                    
+                    wasInChat = false;
+                    chatInput.blur(); 
+                    if (isGaming) requestLock();
+                }
+                if(e.code === 'Escape') {
+                    wasInChat = false;
+                    chatInput.blur();
+                    if (isGaming) requestLock();
+                }
+                return;
+            }
+            
+            if(e.code === 'Tab') { 
+                if (isGaming) {
+                    e.preventDefault(); 
+                    document.getElementById('tab-menu').style.display='block'; 
+                }
+                return; 
+            }
+            
+            if(e.code === 'KeyP') {
+                if (!isGaming) return;
+                const isShown = musicMenu.style.display === 'block';
+                musicMenu.style.display = isShown ? 'none' : 'block';
+                if (!isShown) document.exitPointerLock();
+                else requestLock();
+                return;
+            }
+
+            if(e.code === 'Enter') {
+                wasInChat = true;
+                chatEnterVelocity = velY;
+                
+                chatInput.focus(); 
+                document.exitPointerLock(); 
+                return;
+            }
+            
+            if(e.code === 'KeyV') { 
+                keys.v = 1; 
+                voiceUI.style.display='block'; 
+            }
+            if(e.code === 'KeyW') keys.w=1; 
+            if(e.code === 'KeyS') keys.s=1;
+            if(e.code === 'KeyA') keys.a=1; 
+            if(e.code === 'KeyD') keys.d=1;
+            
+            // ФИКС: Защита от быстрого нажатия пробела
+            if(e.code === 'Space') {
+                const now = Date.now();
+                if (now - spacePressTime > SPACE_COOLDOWN) {
+                    keys.space = 1;
+                    spacePressTime = now;
+                }
+            }
+            
+            if(e.code === 'ControlLeft') keys.ctrl=1;
+            if(e.shiftKey) keys.shift=1;
+        });
+
+        window.addEventListener('keyup', e => {
+            if(e.code === 'Tab' && isGaming) document.getElementById('tab-menu').style.display='none';
+            if(e.code === 'KeyV') { 
+                keys.v = 0; 
+                voiceUI.style.display='none'; 
+            }
+            if(e.code === 'KeyW') keys.w=0; 
+            if(e.code === 'KeyS') keys.s=0;
+            if(e.code === 'KeyA') keys.a=0; 
+            if(e.code === 'KeyD') keys.d=0;
+            if(e.code === 'Space') keys.space=0;
+            if(e.code === 'ControlLeft') keys.ctrl=0;
+            if(!e.shiftKey) keys.shift=0;
+        });
+
+        document.addEventListener('mousemove', e => { 
+            if(document.pointerLockElement){ 
+                yaw -= e.movementX * 0.002; 
+                pitch = Math.max(-1.4, Math.min(1.4, pitch - e.movementY * 0.002)); 
+            } 
+        });
+
+        // --- СТАРТ ИГРЫ ---
+        document.getElementById('startBtn').onclick = () => {
+            myNick = document.getElementById('nickInput').value.trim() || "НОВЫЙ";
+            if (!myNick || myNick.length === 0) {
+                myNick = "НОВЫЙ";
+            }
+            
+            // ФИКС: Сначала устанавливаем позицию, потом подключаемся
+            cameraHolder.position.set(
+                WORLD_CONFIG.SPAWN_POSITION.x,
+                WORLD_CONFIG.SPAWN_POSITION.y,
+                WORLD_CONFIG.SPAWN_POSITION.z
+            );
+            velY = 0;
+            jetpackFuel = 100;
+            
+            socket.emit('initPlayer', myNick);
+            menu.style.display = 'none';
+            madeBy.style.display = 'block';
+            volumeContainer.style.display = 'flex'; 
+            fpsCounter.style.display = 'block';
+            respawnBtn.style.display = 'flex';
+            
+            isGaming = true; 
+            requestLock(); 
+            initVoice();
+            loadPlaylist();
+            
+            // Ждем конфигурацию мира перед генерацией
+            setTimeout(() => {
+                generateInitialWorld();
+            }, 100);
+
+            if(!audioCtx) {
+                 const AudioContext = window.AudioContext || window.webkitAudioContext;
+                 audioCtx = new AudioContext({ sampleRate: SAMPLE_RATE });
+            }
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            
+            console.log("Игра начата. Позиция игрока:", cameraHolder.position);
+        };
+
+        document.getElementById('nickInput').focus();
+
+        // --- АНИМАЦИЯ ---
+        function updateFPS() {
+            frameCount++;
+            const currentTime = performance.now();
+            if (currentTime >= lastTime + 1000) {
+                fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+                frameCount = 0;
+                lastTime = currentTime;
+                fpsCounter.textContent = `FPS: ${fps}`;
+            }
+        }
+
         function animate() {
             requestAnimationFrame(animate);
-            if(!isGameActive) return;
-            if(isFiring) shoot();
-
-            const isMoving = moveForward || moveBackward || moveLeft || moveRight || !canJump;
-            const targetTimeScale = isMoving ? 1.0 : 0.05;
-            timeScale += (targetTimeScale - timeScale) * 0.1;
-            const delta = 0.016;
-
-            velocity.x -= velocity.x * 10.0 * delta;
-            velocity.z -= velocity.z * 10.0 * delta;
-            velocity.y -= 9.8 * 6.0 * delta;
-
-            const curSpeed = isSprinting ? 140.0 : 80.0;
-            if (moveForward) velocity.z -= curSpeed * delta;
-            if (moveBackward) velocity.z += curSpeed * delta;
-            if (moveLeft) velocity.x -= curSpeed * delta;
-            if (moveRight) velocity.x += curSpeed * delta;
-
-            if(isSprinting && (moveForward || moveBackward || moveLeft || moveRight)) stamina = Math.max(0, stamina - 0.5);
-            else stamina = Math.min(100, stamina + 0.3);
-
-            const pObj = controls.getObject();
-            const oldPos = pObj.position.clone();
+            updateFPS();
             
-            pObj.translateX(velocity.x * delta);
-            if(checkWallCollision(pObj.position, oldPos)) pObj.position.x = oldPos.x;
+            if(!isGaming) return;
+
+            const dt = Math.min(clock.getDelta(), 0.1);
+            const fpsMult = dt * 60;
+
+            // Обновляем кулдаун респавна
+            updateRespawnCooldown();
+
+            // Динамическая генерация мира
+            if (worldGenerated) {
+                generateWorldAroundPlayer();
+            }
+
+            const isMoving = keys.w || keys.s || keys.a || keys.d;
+            const wantsToSprint = keys.shift;
             
-            pObj.translateZ(velocity.z * delta);
-            if(checkWallCollision(pObj.position, oldPos)) pObj.position.z = oldPos.z;
-
-            pObj.position.y += velocity.y * delta;
-            if (pObj.position.y < (isDodging ? 1.2 : 2.0)) { velocity.y = 0; pObj.position.y = (isDodging ? 1.2 : 2.0); canJump = true; }
-
-            // --- ОБРАБОТКА ЗДОРОВЬЯ И ЭФФЕКТОВ ---
-            const damageOverlay = document.getElementById('damage-overlay');
-            const criticalVignette = document.getElementById('critical-vignette');
+            isSprinting = wantsToSprint && isMoving && stamina > 0 && canSprint;
             
-            if(health < 35) {
-                let shakeIntensity = 0.15;
-                let pulse = Math.sin(Date.now() * 0.01) * 30 + 40;
-
-                // КРИТИЧЕСКОЕ СОСТОЯНИЕ (< 20 HP)
-                if(health < 20) {
-                    shakeIntensity = 0.4; // Экстремальная тряска
-                    pulse = Math.sin(Date.now() * 0.05) * 50 + 60; // Быстрая пульсация
-                    criticalVignette.style.opacity = 1; // Красный экран
-                    
-                    // Помехи прицеливания (дрейф камеры)
-                    controls.getObject().rotation.y += Math.sin(Date.now() * 0.005) * 0.01;
-                    controls.getObject().rotation.x += Math.cos(Date.now() * 0.005) * 0.005;
-
-                    if(!hasSpokenCriticalHP) {
-                        speakWarning("КРИТИЧЕСКОЕ СОСТОЯНИЕ ВЫКЛЮЧЕНИЯ!", true);
-                        hasSpokenCriticalHP = true;
-                    }
-                } else {
-                    criticalVignette.style.opacity = 0;
-                    hasSpokenCriticalHP = false;
-                    
-                    if(!hasSpokenLowHP) {
-                        speakWarning("Внимание! Низкий уровень целостности!");
-                        hasSpokenLowHP = true;
-                    }
+            if (isSprinting) {
+                stamina = Math.max(0, stamina - 0.8 * fpsMult);
+                if (stamina <= 0) {
+                    canSprint = false;
+                    sprintCooldown = true;
+                    setTimeout(() => {
+                        canSprint = true;
+                        sprintCooldown = false;
+                    }, 3000);
                 }
-
-                damageOverlay.style.boxShadow = `inset 0 0 ${pulse}px 20px rgba(255, 0, 0, 0.9)`;
-                camera.position.x += (Math.random() - 0.5) * shakeIntensity;
-                camera.position.y += (Math.random() - 0.5) * shakeIntensity;
-
             } else {
-                damageOverlay.style.boxShadow = 'inset 0 0 0px red';
-                criticalVignette.style.opacity = 0;
-                hasSpokenLowHP = false;
-                hasSpokenCriticalHP = false;
-            }
-
-            gunGroup.position.z += (-0.6 - gunGroup.position.z) * 0.1;
-
-            if(damageBoost > 1) {
-                damageBoostTimer -= (delta * timeScale * 60); 
-                document.getElementById('damage-indicator').style.display = 'block';
-                document.getElementById('dmg-multiplier').innerText = damageBoost;
-                if(damageBoostTimer <= 0) { 
-                    damageBoost = 1; 
-                    document.getElementById('damage-indicator').style.display = 'none'; 
+                if (stamina < 100 && !sprintCooldown) {
+                    stamina = Math.min(100, stamina + 0.4 * fpsMult);
+                    if (stamina >= 30 && !canSprint) {
+                        canSprint = true;
+                    }
                 }
             }
+            
+            document.getElementById('stamina-bar').style.width = stamina + "%";
+            document.getElementById('fuel-bar').style.width = jetpackFuel + "%";
 
-            playerBullets.forEach((b, i) => {
-                const prevPos = b.position.clone();
-                b.position.add(b.userData.vel.clone().multiplyScalar(timeScale));
+            const staminaBar = document.getElementById('stamina-bar');
+            if (stamina <= 20) {
+                staminaBar.style.background = 'linear-gradient(90deg, var(--orange), var(--pink))';
+                staminaBar.style.boxShadow = '0 0 10px var(--orange-glow)';
+            } else if (stamina <= 50) {
+                staminaBar.style.background = 'linear-gradient(90deg, var(--yellow), var(--orange))';
+                staminaBar.style.boxShadow = '0 0 10px var(--yellow-glow)';
+            } else {
+                staminaBar.style.background = 'linear-gradient(90deg, var(--green), var(--neon))';
+                staminaBar.style.boxShadow = '0 0 10px var(--green-glow)';
+            }
+
+            cameraHolder.rotation.y = yaw; 
+            camera.rotation.x = pitch;
+
+            // Если активен чат, останавливаем физику
+            if(document.activeElement === chatInput) {
+                // Не обновляем физику при активном чате
+            } else if (musicMenu.style.display !== 'block') {
+                let moveVector = new THREE.Vector3();
+                let baseSpeed;
+                if (isSprinting && canSprint) {
+                    baseSpeed = 0.6;
+                } else if (!canSprint || stamina <= 0) {
+                    baseSpeed = 0.25;
+                } else {
+                    baseSpeed = 0.3;
+                }
                 
-                for(let obs of obstacles) {
-                    const box = new THREE.Box3().setFromObject(obs);
-                    if(box.containsPoint(b.position)) {
-                        if(b.userData.bounces > 0) {
-                            if(prevPos.x < box.min.x || prevPos.x > box.max.x) b.userData.vel.x *= -1;
-                            if(prevPos.z < box.min.z || prevPos.z > box.max.z) b.userData.vel.z *= -1;
-                            b.userData.bounces--;
+                let moveSpeed = baseSpeed * fpsMult;
+
+                if(isAdminFly) {
+                    const dir = new THREE.Vector3(); 
+                    camera.getWorldDirection(dir);
+                    const side = new THREE.Vector3().crossVectors(camera.up, dir).normalize();
+                    
+                    if(keys.w) moveVector.addScaledVector(dir, moveSpeed);
+                    if(keys.s) moveVector.addScaledVector(dir, -moveSpeed);
+                    if(keys.a) moveVector.addScaledVector(side, moveSpeed);
+                    if(keys.d) moveVector.addScaledVector(side, -moveSpeed);
+                    if(keys.space) moveVector.y += moveSpeed;
+                    if(keys.ctrl) moveVector.y -= moveSpeed;
+                    
+                    let nextPos = cameraHolder.position.clone().add(moveVector);
+                    if (!checkCollision(nextPos)) cameraHolder.position.copy(nextPos);
+                } else {
+                    const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+                    const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+
+                    if(keys.w) moveVector.addScaledVector(forward, moveSpeed);
+                    if(keys.s) moveVector.addScaledVector(forward, -moveSpeed);
+                    if(keys.d) moveVector.addScaledVector(right, moveSpeed);
+                    if(keys.a) moveVector.addScaledVector(right, -moveSpeed);
+
+                    let nextPos = cameraHolder.position.clone().add(moveVector);
+                    if(!checkCollision(new THREE.Vector3(nextPos.x, cameraHolder.position.y, nextPos.z))) {
+                        cameraHolder.position.x = nextPos.x;
+                        cameraHolder.position.z = nextPos.z;
+                    }
+                    
+                    let gravity = 0.012 * fpsMult;
+                    let jumpForce = 0.32;
+                    let jetForce = 0.04 * fpsMult;
+
+                    // ФИКС: Защита от быстрого нажатия пробела
+                    const now = Date.now();
+                    const canUseSpace = (now - spacePressTime) > SPACE_COOLDOWN || keys.space === 1;
+                    
+                    if (keys.space && canUseSpace && jetpackFuel > 0) {
+                        if (jumpCount < 2 && velY <= 0.1 && velY >= -0.1) {
+                            velY = jumpForce; 
+                            jumpCount++;
+                            spacePressTime = now;
                         } else {
-                            scene.remove(b); playerBullets.splice(i, 1);
+                            velY = Math.min(velY + jetForce, 0.4); 
+                            jetpackFuel = Math.max(0, jetpackFuel - 0.8 * fpsMult); 
                         }
-                        break;
+                    } else {
+                        velY -= gravity;
                     }
-                }
 
-                enemies.forEach((en, j) => {
-                    if(b.position.distanceTo(en.mesh.position) < 1.8) {
-                        const dmg = Math.round(b.userData.damage);
-                        en.hp -= dmg;
-                        createDamageNumber(dmg, en.mesh.position.clone(), "#ff4444");
-                        scene.remove(b); playerBullets.splice(i, 1);
-                        if(en.hp <= 0) {
-                            const roll = Math.random();
-                            if(roll < 0.10) spawnPowerup(en.mesh.position.clone());
-                            else if(roll < 0.25) spawnMedkit(en.mesh.position.clone());
-                            else if(roll < 0.60) spawnAmmo(en.mesh.position.clone());
-                            else if(roll < 0.65) spawnCoreUpgrade(en.mesh.position.clone()); 
-                            scene.remove(en.mesh); enemies.splice(j, 1);
+                    let nextY = cameraHolder.position.y + (velY * fpsMult);
+                    let onGround = false;
+
+                    platforms.forEach(p => {
+                        if(Math.abs(cameraHolder.position.x - p.position.x) < p.userData.hw+0.6 && 
+                           Math.abs(cameraHolder.position.z - p.position.z) < p.userData.hd+0.6) {
+                            if(cameraHolder.position.y >= p.position.y-1 && nextY <= p.position.y+p.userData.hh+1.8 && velY <= 0) {
+                                velY=0; 
+                                nextY = p.position.y+p.userData.hh+1.7; 
+                                jumpCount=0; 
+                                onGround = true;
+                            }
+                            else if (cameraHolder.position.y < p.position.y-p.userData.hh && nextY > p.position.y-p.userData.hh-0.5 && velY > 0) {
+                                velY = -0.05; 
+                                nextY = cameraHolder.position.y;
+                            }
                         }
-                    }
-                });
-                b.userData.life -= timeScale;
-                if(b.userData.life <= 0) { scene.remove(b); playerBullets.splice(i, 1); }
-            });
+                    });
 
-            enemies.forEach(en => {
-                en.mesh.lookAt(pObj.position.x, 1.75, pObj.position.z);
-                if(en.mesh.position.distanceTo(pObj.position) > 12) en.mesh.translateZ(en.speed * timeScale);
-                const shootInterval = Math.max(800, 3000 - (wave * 250)); 
-                if(Date.now() - en.lastShot > shootInterval / (timeScale + 0.1)) {
-                    spawnEnemyBullet(en.mesh.position, pObj.position);
-                    en.lastShot = Date.now();
+                    if (onGround) jetpackFuel = Math.min(100, jetpackFuel + 0.5 * fpsMult);
+                    cameraHolder.position.y = nextY;
                 }
-            });
-
-            enemyBullets.forEach((eb, i) => {
-                eb.position.add(eb.userData.vel.clone().multiplyScalar(timeScale));
-                if(eb.position.distanceTo(pObj.position) < 1.5 && !isDodging) {
-                    const dmg = 15 + (wave * 2);
-                    health -= dmg;
-                    createDamageNumber(dmg, pObj.position.clone().add(new THREE.Vector3(0,1,0)), "#ffffff");
-                    scene.remove(eb); enemyBullets.splice(i, 1);
-                }
-                if(eb.position.length() > 200) { scene.remove(eb); enemyBullets.splice(i, 1); }
-            });
-
-            [...medkits, ...ammoBoxes, ...powerups, ...coreUpgrades].forEach((item, i) => {
-                item.rotation.y += 0.02;
-                if(item.position.distanceTo(pObj.position) < 2) {
-                    if(item.userData.type === 'hp') health = Math.min(maxHealth, health + 30);
-                    if(item.userData.type === 'ammo') ammoReserve += 30;
-                    if(item.userData.type === 'dmg') { damageBoost += 1; damageBoostTimer = 600; }
-                    if(item.userData.type === 'core') { maxHealth += 25; health += 25; }
-                    scene.remove(item);
-                    if(item.userData.type === 'hp') medkits.splice(medkits.indexOf(item), 1);
-                    else if(item.userData.type === 'ammo') ammoBoxes.splice(ammoBoxes.indexOf(item), 1);
-                    else if(item.userData.type === 'dmg') powerups.splice(powerups.indexOf(item), 1);
-                    else if(item.userData.type === 'core') coreUpgrades.splice(coreUpgrades.indexOf(item), 1);
-                    updateUI();
-                }
-            });
-
-            if(health <= 0) { 
-                isGameActive = false; controls.unlock(); 
-                document.getElementById('title-text').innerText = "SYSTEM FAILURE";
-                setTimeout(() => { location.reload(); }, 2000);
             }
-            if(enemies.length === 0 && isGameActive) nextWave();
-            updateUI();
+            
+            // Если только что вышли из чата, восстанавливаем физику
+            if (wasInChat && document.activeElement !== chatInput) {
+                velY = chatEnterVelocity;
+                wasInChat = false;
+            }
+            
+            for(let id in otherPlayers) {
+                otherPlayers[id].mesh.position.lerp(otherPlayers[id].targetPos, 0.2 * fpsMult);
+                if (otherPlayers[id].nickSprite) {
+                    otherPlayers[id].nickSprite.lookAt(camera.position);
+                }
+            }
+            
+            platforms.forEach(p => {
+                if (p.userData.hologram) {
+                    p.userData.hologram.rotation.y += 0.01;
+                }
+                if (p.userData.edges) {
+                    p.userData.edges.forEach(edge => {
+                        edge.material.emissiveIntensity = 0.5 + Math.sin(Date.now() * 0.002) * 0.5;
+                    });
+                }
+            });
+
+            if (stars) {
+                stars.rotation.y += 0.00005;
+            }
+
+            socket.emit('move', {
+                x: cameraHolder.position.x, 
+                y: cameraHolder.position.y, 
+                z: cameraHolder.position.z, 
+                nick: myNick
+            });
             renderer.render(scene, camera);
         }
+        animate();
 
-        function spawnEnemyBullet(from, to) {
-            const b = new THREE.Mesh(new THREE.SphereGeometry(0.3), new THREE.MeshBasicMaterial({color: 0xff0000}));
-            b.position.copy(from);
-            const dir = new THREE.Vector3().subVectors(to, from).normalize();
-            b.userData = { vel: dir.multiplyScalar(0.7 + (wave * 0.08)) };
-            enemyBullets.push(b); scene.add(b);
-        }
+        socket.on('receiveMessage', d => {
+            const div = document.createElement('div');
+            div.className = 'msg-line';
+            const b = document.createElement('b');
+            b.textContent = d.nick + ": ";
+            if (d.type === 'sys') b.style.color = 'var(--sys)';
+            else if (d.nick === 'СЕРВЕР') b.style.color = '#ff4444';
+            else if (d.nick === myNick) b.style.color = 'var(--green)';
+            else b.style.color = 'var(--neon)';
+            const span = document.createElement('span');
+            span.textContent = d.msg;
+            div.appendChild(b);
+            div.appendChild(span);
+            const m = document.getElementById('chat-messages');
+            m.appendChild(div); 
+            m.scrollTop = m.scrollHeight;
+        });
 
-        function spawnAmmo(pos) {
-            const a = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.4, 0.7), new THREE.MeshPhongMaterial({color: 0xffae00}));
-            a.position.copy(pos).y = 1; a.userData = { type: 'ammo' };
-            scene.add(a); ammoBoxes.push(a);
-        }
-
-        function spawnMedkit(pos) {
-            const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.5), new THREE.MeshPhongMaterial({color: 0x00ff88}));
-            m.position.copy(pos).y = 1; m.userData = { type: 'hp' };
-            scene.add(m); medkits.push(m);
-        }
-
-        function spawnPowerup(pos) {
-            const p = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.2, 8, 16), new THREE.MeshPhongMaterial({color: 0xbf00ff}));
-            p.position.copy(pos).y = 1; p.userData = { type: 'dmg' };
-            scene.add(p); powerups.push(p);
-        }
-
-        function spawnCoreUpgrade(pos) {
-            const c = new THREE.Mesh(new THREE.IcosahedronGeometry(0.6), new THREE.MeshPhongMaterial({color: 0xffd700, emissive: 0xaa8800}));
-            c.position.copy(pos).y = 1; c.userData = { type: 'core' };
-            scene.add(c); coreUpgrades.push(c);
-        }
-
-        function nextWave() {
-            wave++;
-            if(wave > bestWave) { bestWave = wave; localStorage.setItem('superhot_record', bestWave); }
-            document.getElementById('wave').innerText = wave;
-            for(let i=0; i<2+wave; i++) {
-                const group = new THREE.Group();
-                const b = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3.5, 1.5), new THREE.MeshStandardMaterial({color: 0xff2222}));
-                group.add(b);
-                const ang = Math.random()*Math.PI*2;
-                group.position.set(Math.cos(ang)*40, 1.75, Math.sin(ang)*40);
-                scene.add(group);
-                enemies.push({ mesh: group, hp: 40 + (wave * 20), speed: 0.06 + (wave * 0.008), lastShot: Date.now() });
-            }
-        }
-
-        function updateUI() {
-            const h = Math.max(0, Math.ceil(health));
-            document.getElementById('hp-val').innerText = h;
-            document.getElementById('max-hp-val').innerText = maxHealth;
-            document.getElementById('hp-bar').style.width = (h / maxHealth * 100) + '%';
-            const s = Math.ceil(stamina);
-            document.getElementById('stamina-val').innerText = s;
-            document.getElementById('stamina-bar').style.width = s + '%';
-            document.getElementById('ammo-display').innerText = `${ammoInMag} / ${ammoReserve}`;
-            document.getElementById('enemies-count').innerText = enemies.length;
-            document.getElementById('best-wave').innerText = bestWave;
-            document.getElementById('record-display').innerText = bestWave;
-        }
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            initStars();
+        });
     </script>
 </body>
 </html>
