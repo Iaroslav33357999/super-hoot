@@ -1,0 +1,5 @@
+cd C:\Users\tiny_pc\Desktop\world
+node server.js
+
+cd C:\Users\tiny_pc\Desktop\world
+cloudflared tunnel --url http://localhost:4000
